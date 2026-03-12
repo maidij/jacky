@@ -1,23 +1,18 @@
 import { NextResponse } from 'next/server';
-import pool from '@/lib/db';
+
+const API_BASE = 'http://localhost:8000/api';
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const category = searchParams.get('category');
+  const page = searchParams.get('page') || '0';
+  const pageSize = searchParams.get('pageSize') || '6';
   
   try {
-    let query = 'SELECT * FROM pets';
-    const params: string[] = [];
-    
-    if (category) {
-      query += ' WHERE category = ?';
-      params.push(category);
-    }
-    
-    query += ' ORDER BY id DESC';
-    
-    const [rows] = await pool.query(query, params);
-    return NextResponse.json(rows);
+    const url = `${API_BASE}/pets?skip=${parseInt(page) * parseInt(pageSize)}&limit=${pageSize}${category ? `&category=${category}` : ''}`;
+    const response = await fetch(url);
+    const data = await response.json();
+    return NextResponse.json(data);
   } catch (error) {
     console.error('Error fetching pets:', error);
     return NextResponse.json({ error: 'Failed to fetch pets' }, { status: 500 });
@@ -27,15 +22,13 @@ export async function GET(request: Request) {
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    const { name, species, category, age, description, image_url } = body;
-    
-    const [result]: any = await pool.query(
-      'INSERT INTO pets (name, species, category, age, description, image_url) VALUES (?, ?, ?, ?, ?, ?)',
-      [name, species, category || 'food', age, description || '', image_url || '']
-    );
-    
-    const [rows]: any = await pool.query('SELECT * FROM pets WHERE id = ?', [result.insertId]);
-    return NextResponse.json(rows[0], { status: 201 });
+    const response = await fetch(`${API_BASE}/pets`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    });
+    const data = await response.json();
+    return NextResponse.json(data, { status: response.status });
   } catch (error) {
     console.error('Error creating pet:', error);
     return NextResponse.json({ error: 'Failed to create pet' }, { status: 500 });

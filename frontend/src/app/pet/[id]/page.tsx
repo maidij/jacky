@@ -16,28 +16,13 @@ interface Pet {
 }
 
 const PawBackground = () => {
-  const paws = Array.from({ length: 6 }, (_, i) => ({
-    id: i,
-    left: `${Math.random() * 100}%`,
-    animationDelay: `${Math.random() * 5}s`,
-    animationDuration: `${5 + Math.random() * 5}s`,
-  }));
-
   return (
     <div className="paw-bg">
-      {paws.map((paw) => (
-        <span
-          key={paw.id}
-          className="paw"
-          style={{
-            left: paw.left,
-            animationDelay: paw.animationDelay,
-            animationDuration: paw.animationDuration,
-          }}
-        >
-          🐾
-        </span>
-      ))}
+      <span className="paw" style={{ left: "10%", animationDelay: "0s", animationDuration: "8s" }}>🐾</span>
+      <span className="paw" style={{ left: "30%", animationDelay: "2s", animationDuration: "10s" }}>🐾</span>
+      <span className="paw" style={{ left: "50%", animationDelay: "1s", animationDuration: "7s" }}>🐾</span>
+      <span className="paw" style={{ left: "70%", animationDelay: "3s", animationDuration: "9s" }}>🐾</span>
+      <span className="paw" style={{ left: "90%", animationDelay: "4s", animationDuration: "8s" }}>🐾</span>
     </div>
   );
 };
@@ -90,6 +75,7 @@ export default function PetDetail({ params }: { params: { id: string } }) {
 
   const getCategoryLabel = (category: string) => {
     const map: Record<string, string> = {
+      pet: "🐾 宠物",
       food: "🍖 粮食",
       medical: "💊 医疗",
       toy: "🧸 玩具",
@@ -155,9 +141,11 @@ export default function PetDetail({ params }: { params: { id: string } }) {
                 {getCategoryLabel(pet.category)}
               </span>
             </p>
+            {pet.category === "pet" && (
             <p className="pet-age" style={{ marginTop: "16px", fontSize: "1.1rem" }}>
               年龄: {pet.age} 岁
             </p>
+            )}
             {pet.description && (
               <p style={{ marginTop: "20px", color: "#666", lineHeight: "1.8" }}>
                 {pet.description}

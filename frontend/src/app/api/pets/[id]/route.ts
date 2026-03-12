@@ -1,18 +1,20 @@
 import { NextResponse } from 'next/server';
-import pool from '@/lib/db';
+
+const API_BASE = 'http://localhost:8000/api';
 
 export async function GET(
   request: Request,
   { params }: { params: { id: string } }
 ) {
   try {
-    const [rows]: any = await pool.query('SELECT * FROM pets WHERE id = ?', [params.id]);
+    const response = await fetch(`${API_BASE}/pets/${params.id}`);
+    const data = await response.json();
     
-    if (rows.length === 0) {
+    if (response.status === 404) {
       return NextResponse.json({ error: 'Pet not found' }, { status: 404 });
     }
     
-    return NextResponse.json(rows[0]);
+    return NextResponse.json(data);
   } catch (error) {
     console.error('Error fetching pet:', error);
     return NextResponse.json({ error: 'Failed to fetch pet' }, { status: 500 });
@@ -25,19 +27,18 @@ export async function PUT(
 ) {
   try {
     const body = await request.json();
-    const { name, species, category, age, description, image_url } = body;
+    const response = await fetch(`${API_BASE}/pets/${params.id}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    });
+    const data = await response.json();
     
-    const [result]: any = await pool.query(
-      'UPDATE pets SET name = ?, species = ?, category = ?, age = ?, description = ?, image_url = ? WHERE id = ?',
-      [name, species, category, age, description || '', image_url || '', params.id]
-    );
-    
-    if (result.affectedRows === 0) {
+    if (response.status === 404) {
       return NextResponse.json({ error: 'Pet not found' }, { status: 404 });
     }
     
-    const [rows]: any = await pool.query('SELECT * FROM pets WHERE id = ?', [params.id]);
-    return NextResponse.json(rows[0]);
+    return NextResponse.json(data);
   } catch (error) {
     console.error('Error updating pet:', error);
     return NextResponse.json({ error: 'Failed to update pet' }, { status: 500 });
@@ -49,13 +50,16 @@ export async function DELETE(
   { params }: { params: { id: string } }
 ) {
   try {
-    const [result]: any = await pool.query('DELETE FROM pets WHERE id = ?', [params.id]);
+    const response = await fetch(`${API_BASE}/pets/${params.id}`, {
+      method: 'DELETE',
+    });
+    const data = await response.json();
     
-    if (result.affectedRows === 0) {
+    if (response.status === 404) {
       return NextResponse.json({ error: 'Pet not found' }, { status: 404 });
     }
     
-    return NextResponse.json({ message: '删除成功' });
+    return NextResponse.json(data);
   } catch (error) {
     console.error('Error deleting pet:', error);
     return NextResponse.json({ error: 'Failed to delete pet' }, { status: 500 });

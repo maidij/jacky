@@ -15,28 +15,13 @@ interface Pet {
 }
 
 const PawBackground = () => {
-  const paws = Array.from({ length: 6 }, (_, i) => ({
-    id: i,
-    left: `${Math.random() * 100}%`,
-    animationDelay: `${Math.random() * 5}s`,
-    animationDuration: `${5 + Math.random() * 5}s`,
-  }));
-
   return (
     <div className="paw-bg">
-      {paws.map((paw) => (
-        <span
-          key={paw.id}
-          className="paw"
-          style={{
-            left: paw.left,
-            animationDelay: paw.animationDelay,
-            animationDuration: paw.animationDuration,
-          }}
-        >
-          🐾
-        </span>
-      ))}
+      <span className="paw" style={{ left: "10%", animationDelay: "0s", animationDuration: "8s" }}>🐾</span>
+      <span className="paw" style={{ left: "30%", animationDelay: "2s", animationDuration: "10s" }}>🐾</span>
+      <span className="paw" style={{ left: "50%", animationDelay: "1s", animationDuration: "7s" }}>🐾</span>
+      <span className="paw" style={{ left: "70%", animationDelay: "3s", animationDuration: "9s" }}>🐾</span>
+      <span className="paw" style={{ left: "90%", animationDelay: "4s", animationDuration: "8s" }}>🐾</span>
     </div>
   );
 };
@@ -153,6 +138,7 @@ export default function EditPet({ params }: { params: { id: string } }) {
               onChange={(e) => setFormData({ ...formData, category: e.target.value })}
               required
             >
+              <option value="pet">🐾 宠物</option>
               <option value="food">🍖 粮食</option>
               <option value="medical">💊 医疗</option>
               <option value="toy">🧸 玩具</option>
@@ -160,6 +146,7 @@ export default function EditPet({ params }: { params: { id: string } }) {
             </select>
           </div>
 
+          {formData.category === "pet" && (
           <div className="form-group">
             <label>年龄 *</label>
             <input
@@ -171,6 +158,7 @@ export default function EditPet({ params }: { params: { id: string } }) {
               max="50"
             />
           </div>
+          )}
 
           <div className="form-group">
             <label>图片 URL</label>

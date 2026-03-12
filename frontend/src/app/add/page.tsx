@@ -1,46 +1,38 @@
 "use client";
 
-import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { Suspense, useState, useEffect, ReactNode } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 
 const PawBackground = () => {
-  const paws = Array.from({ length: 6 }, (_, i) => ({
-    id: i,
-    left: `${Math.random() * 100}%`,
-    animationDelay: `${Math.random() * 5}s`,
-    animationDuration: `${5 + Math.random() * 5}s`,
-  }));
-
   return (
     <div className="paw-bg">
-      {paws.map((paw) => (
-        <span
-          key={paw.id}
-          className="paw"
-          style={{
-            left: paw.left,
-            animationDelay: paw.animationDelay,
-            animationDuration: paw.animationDuration,
-          }}
-        >
-          🐾
-        </span>
-      ))}
+      <span className="paw" style={{ left: "10%", animationDelay: "0s", animationDuration: "8s" }}>🐾</span>
+      <span className="paw" style={{ left: "30%", animationDelay: "2s", animationDuration: "10s" }}>🐾</span>
+      <span className="paw" style={{ left: "50%", animationDelay: "1s", animationDuration: "7s" }}>🐾</span>
+      <span className="paw" style={{ left: "70%", animationDelay: "3s", animationDuration: "9s" }}>🐾</span>
+      <span className="paw" style={{ left: "90%", animationDelay: "4s", animationDuration: "8s" }}>🐾</span>
     </div>
   );
 };
 
-export default function AddPet() {
+function AddPetContent() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const categoryFromUrl = searchParams.get("category") || "pet";
+  
   const [formData, setFormData] = useState({
     name: "",
     species: "dog",
-    category: "food",
+    category: categoryFromUrl,
     age: "",
     description: "",
     image_url: "",
   });
+  
+  useEffect(() => {
+    setFormData(prev => ({ ...prev, category: categoryFromUrl }));
+  }, [categoryFromUrl]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -59,12 +51,23 @@ export default function AddPet() {
     }
   };
 
+  const getTitle = (category: string) => {
+    const map: Record<string, string> = {
+      pet: "宠物",
+      food: "粮食",
+      medical: "医疗",
+      toy: "玩具",
+      other: "物品",
+    };
+    return map[category] || "宠物";
+  };
+
   return (
     <div>
       <PawBackground />
       <header className="header">
         <div className="container">
-          <h1>🐾 添加新宠物</h1>
+          <h1>🐾 添加{getTitle(categoryFromUrl)}</h1>
         </div>
       </header>
 
@@ -73,13 +76,13 @@ export default function AddPet() {
         
         <form className="form-container" onSubmit={handleSubmit}>
           <div className="form-group">
-            <label>宠物名称 *</label>
+            <label>名称 *</label>
             <input
               type="text"
               value={formData.name}
               onChange={(e) => setFormData({ ...formData, name: e.target.value })}
               required
-              placeholder="请输入宠物名称"
+              placeholder={`请输入${getTitle(categoryFromUrl)}名称`}
             />
           </div>
 
@@ -105,6 +108,7 @@ export default function AddPet() {
               onChange={(e) => setFormData({ ...formData, category: e.target.value })}
               required
             >
+              <option value="pet">🐾 宠物</option>
               <option value="food">🍖 粮食</option>
               <option value="medical">💊 医疗</option>
               <option value="toy">🧸 玩具</option>
@@ -112,6 +116,7 @@ export default function AddPet() {
             </select>
           </div>
 
+          {categoryFromUrl === "pet" && (
           <div className="form-group">
             <label>年龄 *</label>
             <input
@@ -124,6 +129,7 @@ export default function AddPet() {
               placeholder="请输入年龄"
             />
           </div>
+          )}
 
           <div className="form-group">
             <label>图片 URL</label>
@@ -141,7 +147,7 @@ export default function AddPet() {
               value={formData.description}
               onChange={(e) => setFormData({ ...formData, description: e.target.value })}
               rows={4}
-              placeholder="请描述宠物的特点..."
+              placeholder={`请描述${getTitle(categoryFromUrl)}的特点...`}
             />
           </div>
 
@@ -156,5 +162,21 @@ export default function AddPet() {
         </form>
       </main>
     </div>
+  );
+}
+
+function Loading() {
+  return (
+    <div style={{ display: "flex", justifyContent: "center", alignItems: "center", minHeight: "100vh" }}>
+      <div style={{ fontSize: "1.5rem", color: "#667eea" }}>加载中...</div>
+    </div>
+  );
+}
+
+export default function AddPet() {
+  return (
+    <Suspense fallback={<Loading />}>
+      <AddPetContent />
+    </Suspense>
   );
 }

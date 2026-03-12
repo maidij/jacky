@@ -2,7 +2,8 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
-import styles from "./page.module.css";
+import { useAuth } from "@/context/AuthContext";
+import ProtectedRoute from "@/components/ProtectedRoute";
 
 interface Pet {
   id: number;
@@ -15,7 +16,15 @@ interface Pet {
   created_at: string;
 }
 
+interface PetsResponse {
+  items: Pet[];
+  total: number;
+  page: number;
+  pageSize: number;
+}
+
 const categories = [
+  { id: "pet", label: "🐾 宠物" },
   { id: "food", label: "🍖 粮食" },
   { id: "medical", label: "💊 医疗" },
   { id: "toy", label: "🧸 玩具" },
@@ -23,28 +32,14 @@ const categories = [
 ];
 
 const PawBackground = () => {
-  const paws = Array.from({ length: 8 }, (_, i) => ({
-    id: i,
-    left: `${Math.random() * 100}%`,
-    animationDelay: `${Math.random() * 5}s`,
-    animationDuration: `${5 + Math.random() * 5}s`,
-  }));
-
   return (
     <div className="paw-bg">
-      {paws.map((paw) => (
-        <span
-          key={paw.id}
-          className="paw"
-          style={{
-            left: paw.left,
-            animationDelay: paw.animationDelay,
-            animationDuration: paw.animationDuration,
-          }}
-        >
-          🐾
-        </span>
-      ))}
+      <span className="paw" style={{ left: "10%", animationDelay: "0s", animationDuration: "8s" }}>🐾</span>
+      <span className="paw" style={{ left: "25%", animationDelay: "2s", animationDuration: "10s" }}>🐾</span>
+      <span className="paw" style={{ left: "40%", animationDelay: "1s", animationDuration: "7s" }}>🐾</span>
+      <span className="paw" style={{ left: "55%", animationDelay: "3s", animationDuration: "9s" }}>🐾</span>
+      <span className="paw" style={{ left: "70%", animationDelay: "4s", animationDuration: "8s" }}>🐾</span>
+      <span className="paw" style={{ left: "85%", animationDelay: "5s", animationDuration: "6s" }}>🐾</span>
     </div>
   );
 };
@@ -52,25 +47,34 @@ const PawBackground = () => {
 export default function Home() {
   const [pets, setPets] = useState<Pet[]>([]);
   const [loading, setLoading] = useState(true);
-  const [activeCategory, setActiveCategory] = useState("food");
+  const [activeCategory, setActiveCategory] = useState("pet");
+  const [currentPage, setCurrentPage] = useState(0);
+  const [totalPages, setTotalPages] = useState(0);
+  const [total, setTotal] = useState(0);
+  const { user, logout } = useAuth();
 
   useEffect(() => {
     fetchPets();
-  }, [activeCategory]);
+  }, [activeCategory, currentPage]);
 
   const fetchPets = async () => {
     try {
-      const url = activeCategory === "all" 
-        ? "/api/pets" 
-        : `/api/pets?category=${activeCategory}`;
+      const url = `/api/pets?category=${activeCategory}&page=${currentPage}`;
       const res = await fetch(url);
-      const data = await res.json();
-      setPets(data);
+      const data: PetsResponse = await res.json();
+      setPets(data.items || []);
+      setTotal(data.total || 0);
+      setTotalPages(Math.ceil((data.total || 0) / data.pageSize));
     } catch (error) {
       console.error("Error fetching pets:", error);
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleCategoryChange = (category: string) => {
+    setActiveCategory(category);
+    setCurrentPage(0);
   };
 
   const deletePet = async (id: number, e: React.MouseEvent) => {
@@ -97,6 +101,17 @@ export default function Home() {
     return map[species] || species;
   };
 
+  const getAddLabel = (category: string) => {
+    const map: Record<string, string> = {
+      pet: "宠物",
+      food: "粮食",
+      medical: "医疗",
+      toy: "玩具",
+      other: "物品",
+    };
+    return map[category] || "宠物";
+  };
+
   if (loading) {
     return (
       <div className="container">
@@ -118,13 +133,20 @@ export default function Home() {
   }
 
   return (
-    <div>
-      <PawBackground />
-      <header className="header">
-        <div className="container">
-          <h1>🐾 宠物管理系统</h1>
-        </div>
-      </header>
+    <ProtectedRoute>
+      <div>
+        <PawBackground />
+        <header className="header">
+          <div className="container" style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+            <h1>🐾 宠物管理系统</h1>
+            <div style={{ display: "flex", alignItems: "center", gap: "16px" }}>
+              <span style={{ fontSize: "0.9rem" }}>欢迎, {user?.username}</span>
+              <button onClick={logout} className="btn btn-secondary" style={{ padding: "8px 16px" }}>
+                退出
+              </button>
+            </div>
+          </div>
+        </header>
 
       <main className="container">
         <div className="tabs">
@@ -132,7 +154,7 @@ export default function Home() {
             <button
               key={cat.id}
               className={`tab ${activeCategory === cat.id ? "active" : ""}`}
-              onClick={() => setActiveCategory(cat.id)}
+              onClick={() => handleCategoryChange(cat.id)}
             >
               {cat.label}
             </button>
@@ -140,8 +162,8 @@ export default function Home() {
         </div>
 
         <div style={{ marginBottom: "24px", textAlign: "right" }}>
-          <Link href="/add" className="btn btn-primary">
-            + 添加宠物
+          <Link href={`/add?category=${activeCategory}`} className="btn btn-primary">
+            + 添加{getAddLabel(activeCategory)}
           </Link>
         </div>
 
@@ -151,25 +173,51 @@ export default function Home() {
             <p>点击上方按钮添加您的第一只宠物</p>
           </div>
         ) : (
-          <div className="pet-grid">
-            {pets?.map((pet, index) => (
-              <Link href={`/pet/${pet.id}`} key={pet.id} className="pet-card" style={{ animationDelay: `${index * 0.1}s` }}>
-                <img
-                  src={pet.image_url || "https://via.placeholder.com/300x200?text=Pet"}
-                  alt={pet.name}
-                  className="pet-image"
-                />
-                <div className="pet-info">
-                  <h3 className="pet-name">{pet.name}</h3>
-                  <span className="pet-species">{getSpeciesLabel(pet.species)}</span>
-                  <p className="pet-age">年龄: {pet.age} 岁</p>
-                  <p className="pet-description">{pet.description}</p>
-                </div>
-              </Link>
-            ))}
-          </div>
+          <>
+            <div className="pet-grid">
+              {pets?.map((pet, index) => (
+                <Link href={`/pet/${pet.id}`} key={pet.id} className="pet-card" style={{ animationDelay: `${index * 0.1}s` }}>
+                  <img
+                    src={pet.image_url || "https://via.placeholder.com/300x200?text=Pet"}
+                    alt={pet.name}
+                    className="pet-image"
+                  />
+                  <div className="pet-info">
+                    <h3 className="pet-name">{pet.name}</h3>
+                    <span className="pet-species">{getSpeciesLabel(pet.species)}</span>
+                    <p className="pet-description">{pet.description}</p>
+                  </div>
+                </Link>
+              ))}
+            </div>
+
+            {totalPages > 1 && (
+              <div style={{ display: "flex", justifyContent: "center", gap: "8px", marginTop: "30px" }}>
+                <button
+                  className="btn btn-secondary"
+                  onClick={() => setCurrentPage(p => Math.max(0, p - 1))}
+                  disabled={currentPage === 0}
+                  style={{ opacity: currentPage === 0 ? 0.5 : 1 }}
+                >
+                  上一页
+                </button>
+                <span style={{ display: "flex", alignItems: "center", padding: "0 16px" }}>
+                  第 {currentPage + 1} / {totalPages} 页 (共 {total} 条)
+                </span>
+                <button
+                  className="btn btn-secondary"
+                  onClick={() => setCurrentPage(p => p + 1)}
+                  disabled={currentPage >= totalPages - 1}
+                  style={{ opacity: currentPage >= totalPages - 1 ? 0.5 : 1 }}
+                >
+                  下一页
+                </button>
+              </div>
+            )}
+          </>
         )}
       </main>
     </div>
+    </ProtectedRoute>
   );
 }
