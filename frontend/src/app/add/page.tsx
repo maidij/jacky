@@ -3,6 +3,7 @@
 import { Suspense, useState, useEffect, ReactNode } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
+import ImageUpload from "@/components/ImageUpload";
 
 const PawBackground = () => {
   return (
@@ -132,12 +133,10 @@ function AddPetContent() {
           )}
 
           <div className="form-group">
-            <label>图片 URL</label>
-            <input
-              type="url"
+            <label>图片上传</label>
+            <ImageUpload
               value={formData.image_url}
-              onChange={(e) => setFormData({ ...formData, image_url: e.target.value })}
-              placeholder="https://example.com/pet.jpg"
+              onChange={(value) => setFormData({ ...formData, image_url: value })}
             />
           </div>
 

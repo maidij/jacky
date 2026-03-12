@@ -84,6 +84,21 @@ export default function PetDetail({ params }: { params: { id: string } }) {
     return map[category] || category;
   };
 
+  const addToCart = async () => {
+    try {
+      const res = await fetch(`http://10.224.205.37:8000/api/cart?user_id=1`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ pet_id: pet.id, quantity: 1 }),
+      });
+      if (res.ok) {
+        alert("已添加到购物车！");
+      }
+    } catch (error) {
+      console.error("Error adding to cart:", error);
+    }
+  };
+
   if (loading) {
     return (
       <div className="container">
@@ -152,6 +167,9 @@ export default function PetDetail({ params }: { params: { id: string } }) {
               </p>
             )}
             <div className="detail-actions">
+              <button onClick={addToCart} className="btn btn-primary" style={{ background: "#4CAF50" }}>
+                🛒 加入购物车
+              </button>
               <Link href={`/edit/${pet.id}`} className="btn btn-primary">
                 编辑
               </Link>

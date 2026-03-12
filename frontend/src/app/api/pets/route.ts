@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 
-const API_BASE = 'http://localhost:8000/api';
+const API_BASE = 'http://10.224.205.37:8000/api';
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);

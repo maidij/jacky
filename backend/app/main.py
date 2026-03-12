@@ -5,14 +5,14 @@ from typing import List
 import hashlib
 
 from app.database import engine, SessionLocal
-from app.models import Base, Pet as PetModel, User as UserModel
-from app.schemas import PetCreate, PetUpdate, Pet, UserCreate, User
+from app.models import Base, Pet as PetModel, User as UserModel, Cart as CartModel, Order as OrderModel, OrderItem as OrderItemModel
+from app.schemas import PetCreate, PetUpdate, Pet, UserCreate, User, CartItemCreate, CartItem, OrderCreate, Order
 
 app = FastAPI(title="宠物管理系统 API")
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000", "http://127.0.0.1:3000"],
+    allow_origins=["*"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -127,6 +127,117 @@ def delete_pet(pet_id: int, db: Session = Depends(get_db)):
     db.delete(db_pet)
     db.commit()
     return {"message": "删除成功"}
+
+
+@app.get("/api/cart")
+def get_cart(user_id: int = 1, db: Session = Depends(get_db)):
+    cart_items = db.query(CartModel).filter(CartModel.user_id == user_id).all()
+    result = []
+    for item in cart_items:
+        pet = db.query(PetModel).filter(PetModel.id == item.pet_id).first()
+        if pet:
+            result.append({
+                "id": item.id,
+                "user_id": item.user_id,
+                "pet_id": item.pet_id,
+                "quantity": item.quantity,
+                "pet": pet
+            })
+    return result
+
+
+@app.post("/api/cart")
+def add_to_cart(item: CartItemCreate, user_id: int = 1, db: Session = Depends(get_db)):
+    existing = db.query(CartModel).filter(
+        CartModel.user_id == user_id,
+        CartModel.pet_id == item.pet_id
+    ).first()
+    
+    if existing:
+        existing.quantity += item.quantity
+        db.commit()
+        return {"message": "更新成功"}
+    
+    db_item = CartModel(user_id=user_id, pet_id=item.pet_id, quantity=item.quantity)
+    db.add(db_item)
+    db.commit()
+    return {"message": "添加成功"}
+
+
+@app.delete("/api/cart/{item_id}")
+def remove_from_cart(item_id: int, db: Session = Depends(get_db)):
+    db_item = db.query(CartModel).filter(CartModel.id == item_id).first()
+    if db_item is None:
+        raise HTTPException(status_code=404, detail="购物车项不存在")
+    
+    db.delete(db_item)
+    db.commit()
+    return {"message": "删除成功"}
+
+
+@app.post("/api/orders")
+def create_order(order: OrderCreate, user_id: int = 1, db: Session = Depends(get_db)):
+    cart_items = db.query(CartModel).filter(CartModel.user_id == user_id).all()
+    
+    if not cart_items:
+        raise HTTPException(status_code=400, detail="购物车为空")
+    
+    total_amount = 0
+    items_data = []
+    
+    for cart_item in cart_items:
+        pet = db.query(PetModel).filter(PetModel.id == cart_item.pet_id).first()
+        if pet:
+            total_amount += pet.price * cart_item.quantity
+            items_data.append({
+                "pet_id": pet.id,
+                "pet_name": pet.name,
+                "pet_image": pet.image_url,
+                "price": pet.price,
+                "quantity": cart_item.quantity
+            })
+    
+    db_order = OrderModel(
+        user_id=user_id,
+        total_amount=total_amount,
+        receiver_name=order.receiver_name,
+        phone=order.phone,
+        address=order.address,
+        status="pending"
+    )
+    db.add(db_order)
+    db.commit()
+    db.refresh(db_order)
+    
+    for item in items_data:
+        db_item = OrderItemModel(order_id=db_order.id, **item)
+        db.add(db_item)
+    
+    for cart_item in cart_items:
+        db.delete(cart_item)
+    
+    db.commit()
+    return {"message": "订单创建成功", "order_id": db_order.id}
+
+
+@app.get("/api/orders")
+def get_orders(user_id: int = 1, db: Session = Depends(get_db)):
+    orders = db.query(OrderModel).filter(OrderModel.user_id == user_id).order_by(OrderModel.created_at.desc()).all()
+    result = []
+    for order in orders:
+        items = db.query(OrderItemModel).filter(OrderItemModel.order_id == order.id).all()
+        result.append({
+            "id": order.id,
+            "user_id": order.user_id,
+            "total_amount": order.total_amount,
+            "status": order.status,
+            "receiver_name": order.receiver_name,
+            "phone": order.phone,
+            "address": order.address,
+            "items": items,
+            "created_at": order.created_at
+        })
+    return result
 
 
 if __name__ == "__main__":

@@ -140,6 +140,8 @@ export default function Home() {
           <div className="container" style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
             <h1>🐾 宠物管理系统</h1>
             <div style={{ display: "flex", alignItems: "center", gap: "16px" }}>
+              <Link href="/cart" style={{ color: "white", marginRight: "8px" }}>🛒 购物车</Link>
+              <Link href="/orders" style={{ color: "white", marginRight: "8px" }}>📋 订单</Link>
               <span style={{ fontSize: "0.9rem" }}>欢迎, {user?.username}</span>
               <button onClick={logout} className="btn btn-secondary" style={{ padding: "8px 16px" }}>
                 退出

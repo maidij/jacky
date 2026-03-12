@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import ImageUpload from "@/components/ImageUpload";
 
 interface Pet {
   id: number;
@@ -161,11 +162,10 @@ export default function EditPet({ params }: { params: { id: string } }) {
           )}
 
           <div className="form-group">
-            <label>图片 URL</label>
-            <input
-              type="url"
+            <label>图片上传</label>
+            <ImageUpload
               value={formData.image_url}
-              onChange={(e) => setFormData({ ...formData, image_url: e.target.value })}
+              onChange={(value) => setFormData({ ...formData, image_url: value })}
             />
           </div>
 
