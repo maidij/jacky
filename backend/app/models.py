@@ -60,3 +60,15 @@ class OrderItem(Base):
     pet_image = Column(String, default="")
     price = Column(Float, default=0)
     quantity = Column(Integer, default=1)
+
+
+class Review(Base):
+    __tablename__ = "reviews"
+
+    id = Column(Integer, primary_key=True, index=True)
+    pet_id = Column(Integer, nullable=False)
+    user_id = Column(Integer, nullable=False)
+    username = Column(String, default="")
+    rating = Column(Integer, default=5)
+    comment = Column(String, default="")
+    created_at = Column(DateTime, default=datetime.utcnow)

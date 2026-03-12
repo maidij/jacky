@@ -86,3 +86,22 @@ class Order(BaseModel):
 
     class Config:
         from_attributes = True
+
+
+class ReviewCreate(BaseModel):
+    pet_id: int
+    rating: int
+    comment: str
+
+
+class Review(BaseModel):
+    id: int
+    pet_id: int
+    user_id: int
+    username: str
+    rating: int
+    comment: str
+    created_at: datetime
+
+    class Config:
+        from_attributes = True

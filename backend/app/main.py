@@ -5,8 +5,8 @@ from typing import List
 import hashlib
 
 from app.database import engine, SessionLocal
-from app.models import Base, Pet as PetModel, User as UserModel, Cart as CartModel, Order as OrderModel, OrderItem as OrderItemModel
-from app.schemas import PetCreate, PetUpdate, Pet, UserCreate, User, CartItemCreate, CartItem, OrderCreate, Order
+from app.models import Base, Pet as PetModel, User as UserModel, Cart as CartModel, Order as OrderModel, OrderItem as OrderItemModel, Review as ReviewModel
+from app.schemas import PetCreate, PetUpdate, Pet, UserCreate, User, CartItemCreate, CartItem, OrderCreate, Order, ReviewCreate, Review
 
 app = FastAPI(title="宠物管理系统 API")
 
@@ -238,6 +238,37 @@ def get_orders(user_id: int = 1, db: Session = Depends(get_db)):
             "created_at": order.created_at
         })
     return result
+
+
+@app.get("/api/reviews/{pet_id}")
+def get_reviews(pet_id: int, db: Session = Depends(get_db)):
+    reviews = db.query(ReviewModel).filter(ReviewModel.pet_id == pet_id).order_by(ReviewModel.created_at.desc()).all()
+    return reviews
+
+
+@app.post("/api/reviews")
+def create_review(review: ReviewCreate, user_id: int = 1, username: str = "用户", db: Session = Depends(get_db)):
+    db_review = ReviewModel(
+        pet_id=review.pet_id,
+        user_id=user_id,
+        username=username,
+        rating=review.rating,
+        comment=review.comment
+    )
+    db.add(db_review)
+    db.commit()
+    db.refresh(db_review)
+    return {"message": "评价成功"}
+
+
+@app.get("/api/reviews/{pet_id}/stats")
+def get_review_stats(pet_id: int, db: Session = Depends(get_db)):
+    reviews = db.query(ReviewModel).filter(ReviewModel.pet_id == pet_id).all()
+    if not reviews:
+        return {"average": 0, "count": 0}
+    
+    total = sum(r.rating for r in reviews)
+    return {"average": round(total / len(reviews), 1), "count": len(reviews)}
 
 
 if __name__ == "__main__":
