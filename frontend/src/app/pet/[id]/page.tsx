@@ -15,6 +15,16 @@ interface Pet {
   created_at: string;
 }
 
+interface Review {
+  id: number;
+  pet_id: number;
+  user_id: number;
+  username: string;
+  rating: number;
+  comment: string;
+  created_at: string;
+}
+
 const PawBackground = () => {
   return (
     <div className="paw-bg">
@@ -31,9 +41,14 @@ export default function PetDetail({ params }: { params: { id: string } }) {
   const router = useRouter();
   const [pet, setPet] = useState<Pet | null>(null);
   const [loading, setLoading] = useState(true);
+  const [reviews, setReviews] = useState<Review[]>([]);
+  const [reviewStats, setReviewStats] = useState({ average: 0, count: 0 });
+  const [showReviewForm, setShowReviewForm] = useState(false);
+  const [newReview, setNewReview] = useState({ rating: 5, comment: "" });
 
   useEffect(() => {
     fetchPet();
+    fetchReviews();
   }, [params.id]);
 
   const fetchPet = async () => {
@@ -49,6 +64,42 @@ export default function PetDetail({ params }: { params: { id: string } }) {
       console.error("Error fetching pet:", error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchReviews = async () => {
+    try {
+      const [reviewsRes, statsRes] = await Promise.all([
+        fetch(`/api/reviews/${params.id}`),
+        fetch(`/api/reviews/${params.id}/stats`)
+      ]);
+      const reviewsData = await reviewsRes.json();
+      const statsData = await statsRes.json();
+      setReviews(reviewsData);
+      setReviewStats(statsData);
+    } catch (error) {
+      console.error("Error fetching reviews:", error);
+    }
+  };
+
+  const submitReview = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      await fetch("/api/reviews", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          pet_id: parseInt(params.id),
+          rating: newReview.rating,
+          comment: newReview.comment
+        })
+      });
+      setShowReviewForm(false);
+      setNewReview({ rating: 5, comment: "" });
+      fetchReviews();
+      alert("评价成功！");
+    } catch (error) {
+      console.error("Error submitting review:", error);
     }
   };
 
@@ -178,6 +229,76 @@ export default function PetDetail({ params }: { params: { id: string } }) {
               </button>
             </div>
           </div>
+        </div>
+
+        <div style={{ marginTop: "40px" }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "20px" }}>
+            <h3>用户评价</h3>
+            <button onClick={() => setShowReviewForm(!showReviewForm)} className="btn btn-primary">
+              {showReviewForm ? "取消评价" : "我要评价"}
+            </button>
+          </div>
+          
+          <div style={{ background: "#f5f5f5", padding: "15px", borderRadius: "8px", marginBottom: "20px" }}>
+            <span style={{ fontSize: "1.2rem", marginRight: "10px" }}>⭐ {reviewStats.average}</span>
+            <span style={{ color: "#666" }}>({reviewStats.count} 条评价)</span>
+          </div>
+
+          {showReviewForm && (
+            <form onSubmit={submitReview} style={{ background: "white", padding: "20px", borderRadius: "8px", marginBottom: "20px" }}>
+              <div className="form-group">
+                <label>评分</label>
+                <div style={{ display: "flex", gap: "8px" }}>
+                  {[1, 2, 3, 4, 5].map((star) => (
+                    <button
+                      key={star}
+                      type="button"
+                      onClick={() => setNewReview({ ...newReview, rating: star })}
+                      style={{
+                        background: "none",
+                        border: "none",
+                        fontSize: "1.5rem",
+                        cursor: "pointer",
+                        color: star <= newReview.rating ? "#ffc107" : "#ddd"
+                      }}
+                    >
+                      ★
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <div className="form-group">
+                <label>评价内容</label>
+                <textarea
+                  value={newReview.comment}
+                  onChange={(e) => setNewReview({ ...newReview, comment: e.target.value })}
+                  required
+                  placeholder="分享您的使用体验..."
+                  rows={3}
+                />
+              </div>
+              <button type="submit" className="btn btn-primary">提交评价</button>
+            </form>
+          )}
+
+          {reviews.length === 0 ? (
+            <p style={{ color: "#666", textAlign: "center" }}>暂无评价，快来抢先评价吧！</p>
+          ) : (
+            <div>
+              {reviews.map((review) => (
+                <div key={review.id} style={{ background: "white", padding: "15px", borderRadius: "8px", marginBottom: "10px" }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "8px" }}>
+                    <span style={{ fontWeight: "bold" }}>{review.username}</span>
+                    <span style={{ color: "#ffc107" }}>{"★".repeat(review.rating)}</span>
+                  </div>
+                  <p style={{ color: "#666" }}>{review.comment}</p>
+                  <p style={{ fontSize: "0.8rem", color: "#999", marginTop: "8px" }}>
+                    {new Date(review.created_at).toLocaleDateString()}
+                  </p>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       </main>
     </div>

@@ -29,8 +29,15 @@ class PetCreate(PetBase):
     pass
 
 
-class PetUpdate(PetBase):
-    pass
+class PetUpdate(BaseModel):
+    name: str | None = None
+    species: str | None = None
+    category: str | None = "food"
+    age: int | None = None
+    description: str | None = ""
+    image_url: str | None = ""
+    price: float | None = 0
+    stock: int | None = 0
 
 
 class Pet(PetBase):

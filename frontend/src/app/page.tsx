@@ -51,15 +51,19 @@ export default function Home() {
   const [currentPage, setCurrentPage] = useState(0);
   const [totalPages, setTotalPages] = useState(0);
   const [total, setTotal] = useState(0);
+  const [searchQuery, setSearchQuery] = useState("");
   const { user, logout } = useAuth();
 
   useEffect(() => {
     fetchPets();
-  }, [activeCategory, currentPage]);
+  }, [activeCategory, currentPage, searchQuery]);
 
   const fetchPets = async () => {
     try {
-      const url = `/api/pets?category=${activeCategory}&page=${currentPage}`;
+      let url = `/api/pets?category=${activeCategory}&page=${currentPage}`;
+      if (searchQuery) {
+        url = `/api/pets/search?q=${encodeURIComponent(searchQuery)}&page=${currentPage}`;
+      }
       const res = await fetch(url);
       const data: PetsResponse = await res.json();
       setPets(data.items || []);
@@ -70,6 +74,12 @@ export default function Home() {
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleSearch = (e: React.FormEvent) => {
+    e.preventDefault();
+    setCurrentPage(0);
+    fetchPets();
   };
 
   const handleCategoryChange = (category: string) => {
@@ -151,6 +161,25 @@ export default function Home() {
         </header>
 
       <main className="container">
+        <form onSubmit={handleSearch} style={{ display: "flex", gap: "8px", marginBottom: "20px" }}>
+          <input
+            type="text"
+            placeholder="搜索宠物/商品..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            style={{
+              flex: 1,
+              padding: "12px 16px",
+              borderRadius: "8px",
+              border: "1px solid #ddd",
+              fontSize: "1rem"
+            }}
+          />
+          <button type="submit" className="btn btn-primary">
+            搜索
+          </button>
+        </form>
+
         <div className="tabs">
           {categories.map((cat) => (
             <button

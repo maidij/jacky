@@ -85,6 +85,27 @@ def get_pets(skip: int = 0, limit: int = 6, category: str = None, db: Session = 
         "pageSize": limit
     }
 
+
+@app.get("/api/pets/search")
+def search_pets(q: str = "", skip: int = 0, limit: int = 20, db: Session = Depends(get_db)):
+    query = db.query(PetModel)
+    if q:
+        query = query.filter(
+            (PetModel.name.contains(q)) | 
+            (PetModel.description.contains(q)) |
+            (PetModel.species.contains(q))
+        )
+    
+    total = query.count()
+    pets = query.offset(skip).limit(limit).all()
+    
+    return {
+        "items": pets,
+        "total": total,
+        "page": skip // limit + 1,
+        "pageSize": limit
+    }
+
 # 这是更新
 
 @app.get("/api/pets/{pet_id}", response_model=Pet)
