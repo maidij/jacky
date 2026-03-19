@@ -152,6 +152,8 @@ export default function Home() {
             <div style={{ display: "flex", alignItems: "center", gap: "16px" }}>
               <Link href="/cart" style={{ color: "white", marginRight: "8px" }}>🛒 购物车</Link>
               <Link href="/orders" style={{ color: "white", marginRight: "8px" }}>📋 订单</Link>
+              <Link href="/community" style={{ color: "white", marginRight: "8px" }}>💬 社区</Link>
+              <Link href="/admin/dashboard" style={{ color: "white", marginRight: "8px" }}>📊 统计</Link>
               <span style={{ fontSize: "0.9rem" }}>欢迎, {user?.username}</span>
               <button onClick={logout} className="btn btn-secondary" style={{ padding: "8px 16px" }}>
                 退出

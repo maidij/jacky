@@ -221,6 +221,11 @@ export default function PetDetail({ params }: { params: { id: string } }) {
               <button onClick={addToCart} className="btn btn-primary" style={{ background: "#4CAF50" }}>
                 🛒 加入购物车
               </button>
+              {pet.category === "pet" && (
+                <Link href={`/health/${pet.id}`} className="btn btn-primary" style={{ background: "#2196F3" }}>
+                  📋 健康档案
+                </Link>
+              )}
               <Link href={`/edit/${pet.id}`} className="btn btn-primary">
                 编辑
               </Link>

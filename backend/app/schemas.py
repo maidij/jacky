@@ -112,3 +112,136 @@ class Review(BaseModel):
 
     class Config:
         from_attributes = True
+
+
+class TransportCreate(BaseModel):
+    pet_id: int
+    pickup_address: str
+    delivery_address: str
+    transport_type: str = "express"
+    pet_weight: float = 0
+    contact_phone: str = ""
+    remark: str = ""
+
+
+class Transport(BaseModel):
+    id: int
+    user_id: int
+    pet_id: int
+    pet_name: str
+    pickup_address: str
+    delivery_address: str
+    transport_type: str
+    pet_weight: float
+    price: float
+    status: str
+    contact_phone: str
+    remark: str
+    created_at: datetime
+
+    class Config:
+        from_attributes = True
+
+
+class FosterCreate(BaseModel):
+    pet_id: int
+    start_date: datetime
+    end_date: datetime
+    daily_price: float
+    service_type: str = "daycare"
+    contact_phone: str = ""
+    address: str = ""
+    remark: str = ""
+
+
+class Foster(BaseModel):
+    id: int
+    user_id: int
+    pet_id: int
+    pet_name: str
+    start_date: datetime
+    end_date: datetime
+    daily_price: float
+    total_price: float
+    status: str
+    service_type: str
+    contact_phone: str
+    address: str
+    remark: str
+    created_at: datetime
+
+    class Config:
+        from_attributes = True
+
+
+class HealthRecordCreate(BaseModel):
+    pet_id: int
+    record_type: str
+    record_date: datetime
+    description: str = ""
+    next_date: datetime | None = None
+    hospital: str = ""
+    cost: float = 0
+
+
+class HealthRecord(BaseModel):
+    id: int
+    user_id: int
+    pet_id: int
+    pet_name: str
+    record_type: str
+    record_date: datetime
+    description: str
+    next_date: datetime | None = None
+    hospital: str
+    cost: float
+    created_at: datetime
+
+    class Config:
+        from_attributes = True
+
+
+class HealthRecordUpdate(BaseModel):
+    record_type: str | None = None
+    record_date: datetime | None = None
+    description: str | None = None
+    next_date: datetime | None = None
+    hospital: str | None = None
+    cost: float | None = None
+
+
+class PostCreate(BaseModel):
+    title: str
+    content: str = ""
+    image_urls: str = ""
+
+
+class Post(BaseModel):
+    id: int
+    user_id: int
+    username: str
+    title: str
+    content: str
+    image_urls: str
+    likes_count: int
+    comments_count: int
+    created_at: datetime
+
+    class Config:
+        from_attributes = True
+
+
+class CommentCreate(BaseModel):
+    content: str
+
+
+class Comment(BaseModel):
+    id: int
+    post_id: int
+    user_id: int
+    username: str
+    content: str
+    created_at: datetime
+
+    class Config:
+        from_attributes = True
