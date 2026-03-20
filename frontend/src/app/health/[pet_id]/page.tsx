@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { useRouter, useParams } from "next/navigation";
 import Link from "next/link";
+import { Message } from "@arco-design/web-react";
 
 interface HealthRecord {
   id: number;
@@ -112,7 +113,7 @@ export default function HealthRecordsPage() {
       });
       
       if (res.ok) {
-        alert("记录添加成功！");
+        Message.success("记录添加成功！");
         setShowForm(false);
         setNewRecord({
           record_type: "vaccine",
@@ -137,7 +138,7 @@ export default function HealthRecordsPage() {
         method: "DELETE"
       });
       if (res.ok) {
-        alert("删除成功！");
+        Message.success("删除成功！");
         fetchRecords();
         fetchUpcoming();
       }

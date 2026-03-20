@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import { Message } from "@arco-design/web-react";
 
 const PawBackground = () => {
   return (
@@ -26,7 +27,7 @@ export default function CreatePostPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!title.trim()) {
-      alert("请输入标题");
+      Message.warning("请输入标题");
       return;
     }
 
@@ -43,14 +44,14 @@ export default function CreatePostPage() {
       });
 
       if (res.ok) {
-        alert("发布成功！");
+        Message.success("发布成功！");
         router.push("/community");
       } else {
-        alert("发布失败，请重试");
+        Message.error("发布失败，请重试");
       }
     } catch (error) {
       console.error("Error creating post:", error);
-      alert("发布失败，请检查网络连接");
+      Message.error("发布失败，请检查网络连接");
     } finally {
       setSubmitting(false);
     }

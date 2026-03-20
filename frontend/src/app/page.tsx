@@ -2,8 +2,33 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
 import ProtectedRoute from "@/components/ProtectedRoute";
+import {
+  Card,
+  Button,
+  Input,
+  Select,
+  Skeleton,
+  Empty,
+  Badge,
+  Space,
+  Tag,
+  Message,
+  Modal,
+} from "@arco-design/web-react";
+import {
+  IconSearch,
+  IconPlus,
+  IconHistory,
+  IconMessage,
+  IconHeart,
+  IconCalendar,
+  IconNotification,
+  IconDashboard,
+  IconApps,
+} from "@arco-design/web-react/icon";
 
 interface Pet {
   id: number;
@@ -13,6 +38,8 @@ interface Pet {
   age: number;
   description: string;
   image_url: string;
+  price: number;
+  stock: number;
   created_at: string;
 }
 
@@ -24,31 +51,42 @@ interface PetsResponse {
 }
 
 const categories = [
-  { id: "pet", label: "🐾 宠物" },
-  { id: "food", label: "🍖 粮食" },
-  { id: "medical", label: "💊 医疗" },
-  { id: "toy", label: "🧸 玩具" },
-  { id: "other", label: "📦 其他" },
+  { id: "pet", label: "🐾 宠物", color: "#165DFF" },
+  { id: "food", label: "🍖 粮食", color: "#00B42A" },
+  { id: "medical", label: "💊 医疗", color: "#F53F3F" },
+  { id: "toy", label: "🧸 玩具", color: "#FF7D00" },
+  { id: "other", label: "📦 其他", color: "#7C3AED" },
 ];
+
+const getSpeciesLabel = (species: string) => {
+  const map: Record<string, string> = {
+    dog: "🐕 狗",
+    cat: "🐱 猫",
+    bird: "🐦 鸟",
+    rabbit: "🐰 兔",
+    other: "🐾 其他",
+  };
+  return map[species] || species;
+};
 
 const PawBackground = () => {
   return (
     <div className="paw-bg">
       <span className="paw" style={{ left: "10%", animationDelay: "0s", animationDuration: "8s" }}>🐾</span>
-      <span className="paw" style={{ left: "25%", animationDelay: "2s", animationDuration: "10s" }}>🐾</span>
-      <span className="paw" style={{ left: "40%", animationDelay: "1s", animationDuration: "7s" }}>🐾</span>
-      <span className="paw" style={{ left: "55%", animationDelay: "3s", animationDuration: "9s" }}>🐾</span>
-      <span className="paw" style={{ left: "70%", animationDelay: "4s", animationDuration: "8s" }}>🐾</span>
-      <span className="paw" style={{ left: "85%", animationDelay: "5s", animationDuration: "6s" }}>🐾</span>
+      <span className="paw" style={{ left: "30%", animationDelay: "2s", animationDuration: "10s" }}>🐾</span>
+      <span className="paw" style={{ left: "50%", animationDelay: "1s", animationDuration: "7s" }}>🐾</span>
+      <span className="paw" style={{ left: "70%", animationDelay: "3s", animationDuration: "9s" }}>🐾</span>
+      <span className="paw" style={{ left: "90%", animationDelay: "4s", animationDuration: "8s" }}>🐾</span>
     </div>
   );
 };
 
 export default function Home() {
+  const router = useRouter();
   const [pets, setPets] = useState<Pet[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeCategory, setActiveCategory] = useState("pet");
-  const [currentPage, setCurrentPage] = useState(0);
+  const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(0);
   const [total, setTotal] = useState(0);
   const [searchQuery, setSearchQuery] = useState("");
@@ -60,9 +98,9 @@ export default function Home() {
 
   const fetchPets = async () => {
     try {
-      let url = `/api/pets?category=${activeCategory}&page=${currentPage}`;
+      let url = `/api/pets?category=${activeCategory}&skip=${(currentPage - 1) * 6}&limit=6`;
       if (searchQuery) {
-        url = `/api/pets/search?q=${encodeURIComponent(searchQuery)}&page=${currentPage}`;
+        url = `/api/pets/search?q=${encodeURIComponent(searchQuery)}&skip=${(currentPage - 1) * 6}&limit=6`;
       }
       const res = await fetch(url);
       const data: PetsResponse = await res.json();
@@ -76,51 +114,44 @@ export default function Home() {
     }
   };
 
-  const handleSearch = (e: React.FormEvent) => {
-    e.preventDefault();
-    setCurrentPage(0);
-    fetchPets();
+  const handleSearch = (value: string) => {
+    setSearchQuery(value);
+    setCurrentPage(1);
   };
 
   const handleCategoryChange = (category: string) => {
     setActiveCategory(category);
-    setCurrentPage(0);
+    setCurrentPage(1);
   };
 
   const deletePet = async (id: number, e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    if (!confirm("确定要删除这只宠物吗?")) return;
-    
-    try {
-      await fetch(`/api/pets/${id}`, { method: "DELETE" });
-      fetchPets();
-    } catch (error) {
-      console.error("Error deleting pet:", error);
-    }
+    Modal.confirm({
+      title: "确认删除",
+      content: "确定要删除这只宠物吗？",
+      onOk: async () => {
+        try {
+          await fetch(`/api/pets/${id}`, { method: "DELETE" });
+          Message.success("删除成功");
+          fetchPets();
+        } catch (error) {
+          console.error("Error deleting pet:", error);
+          Message.error("删除失败");
+        }
+      },
+    });
   };
 
-  const getSpeciesLabel = (species: string) => {
-    const map: Record<string, string> = {
-      dog: "🐕 狗",
-      cat: "🐱 猫",
-      bird: "🐦 鸟",
-      rabbit: "🐰 兔",
-      other: "🐾 其他",
-    };
-    return map[species] || species;
-  };
-
-  const getAddLabel = (category: string) => {
-    const map: Record<string, string> = {
-      pet: "宠物",
-      food: "粮食",
-      medical: "医疗",
-      toy: "玩具",
-      other: "物品",
-    };
-    return map[category] || "宠物";
-  };
+  const navItems = [
+    { icon: <IconApps />, text: "购物车", href: "/cart", color: "#165DFF" },
+    { icon: <IconHistory />, text: "订单", href: "/orders", color: "#00B42A" },
+    { icon: <IconMessage />, text: "社区", href: "/community", color: "#FF7D00" },
+    { icon: <IconHeart />, text: "收藏", href: "/favorites", color: "#F53F3F" },
+    { icon: <IconCalendar />, text: "预约", href: "/appointments", color: "#722ED1" },
+    { icon: <IconNotification />, text: "通知", href: "/notifications", color: "#EB5041" },
+    { icon: <IconDashboard />, text: "统计", href: "/admin/dashboard", color: "#0FC6C2" },
+  ];
 
   if (loading) {
     return (
@@ -131,13 +162,15 @@ export default function Home() {
             <h1>🐾 宠物管理系统</h1>
           </div>
         </header>
-        <div className="loading-container">
-          <div className="loading-pets">
-            <span>🐕</span>
-            <span>🐱</span>
-            <span>🐰</span>
+        <main className="container" style={{ marginTop: "40px" }}>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "24px" }}>
+            {[1, 2, 3].map((i) => (
+              <Card key={i}>
+                <Skeleton />
+              </Card>
+            ))}
           </div>
-        </div>
+        </main>
       </div>
     );
   }
@@ -148,109 +181,169 @@ export default function Home() {
         <PawBackground />
         <header className="header">
           <div className="container" style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-            <h1>🐾 宠物管理系统</h1>
-            <div style={{ display: "flex", alignItems: "center", gap: "16px" }}>
-              <Link href="/cart" style={{ color: "white", marginRight: "8px" }}>🛒 购物车</Link>
-              <Link href="/orders" style={{ color: "white", marginRight: "8px" }}>📋 订单</Link>
-              <Link href="/community" style={{ color: "white", marginRight: "8px" }}>💬 社区</Link>
-              <Link href="/admin/dashboard" style={{ color: "white", marginRight: "8px" }}>📊 统计</Link>
-              <span style={{ fontSize: "0.9rem" }}>欢迎, {user?.username}</span>
-              <button onClick={logout} className="btn btn-secondary" style={{ padding: "8px 16px" }}>
+            <h1 style={{ fontSize: "1.8rem", fontWeight: 600, margin: 0 }}>
+              🐾 宠物管理系统
+            </h1>
+            <Space>
+              {navItems.map((item) => (
+                <Link key={item.href} href={item.href} style={{ color: "white" }}>
+                  <Button type="text" icon={item.icon} style={{ color: "white" }}>
+                    {item.text}
+                  </Button>
+                </Link>
+              ))}
+              <Badge count={1} style={{ backgroundColor: "#F53F3F" }}>
+                <span style={{ color: "white", fontSize: "0.9rem" }}>欢迎, {user?.username}</span>
+              </Badge>
+              <Button type="secondary" onClick={logout} size="small">
                 退出
-              </button>
-            </div>
+              </Button>
+            </Space>
           </div>
         </header>
 
-      <main className="container">
-        <form onSubmit={handleSearch} style={{ display: "flex", gap: "8px", marginBottom: "20px" }}>
-          <input
-            type="text"
-            placeholder="搜索宠物/商品..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            style={{
-              flex: 1,
-              padding: "12px 16px",
-              borderRadius: "8px",
-              border: "1px solid #ddd",
-              fontSize: "1rem"
-            }}
-          />
-          <button type="submit" className="btn btn-primary">
-            搜索
-          </button>
-        </form>
+        <main className="container" style={{ marginTop: "30px" }}>
+          <Card>
+            <div style={{ display: "flex", gap: "16px", alignItems: "center", marginBottom: "20px" }}>
+              <div style={{ flex: 1 }}>
+                <Input.Search
+                  placeholder="搜索宠物/商品..."
+                  value={searchQuery}
+                  onSearch={handleSearch}
+                  onChange={(value) => setSearchQuery(value)}
+                  prefix={<IconSearch />}
+                  allowClear
+                  size="large"
+                />
+              </div>
+              <Link href={`/add?category=${activeCategory}`}>
+                <Button type="primary" icon={<IconPlus />}>
+                  添加{categories.find(c => c.id === activeCategory)?.label.replace(/[🐾🍖💊🧸📦\s]/g, "")}
+                </Button>
+              </Link>
+            </div>
 
-        <div className="tabs">
-          {categories.map((cat) => (
-            <button
-              key={cat.id}
-              className={`tab ${activeCategory === cat.id ? "active" : ""}`}
-              onClick={() => handleCategoryChange(cat.id)}
-            >
-              {cat.label}
-            </button>
-          ))}
-        </div>
-
-        <div style={{ marginBottom: "24px", textAlign: "right" }}>
-          <Link href={`/add?category=${activeCategory}`} className="btn btn-primary">
-            + 添加{getAddLabel(activeCategory)}
-          </Link>
-        </div>
-
-        {pets.length === 0 ? (
-          <div className="empty-state">
-            <h2>还没有宠物</h2>
-            <p>点击上方按钮添加您的第一只宠物</p>
-          </div>
-        ) : (
-          <>
-            <div className="pet-grid">
-              {pets?.map((pet, index) => (
-                <Link href={`/pet/${pet.id}`} key={pet.id} className="pet-card" style={{ animationDelay: `${index * 0.1}s` }}>
-                  <img
-                    src={pet.image_url || "https://via.placeholder.com/300x200?text=Pet"}
-                    alt={pet.name}
-                    className="pet-image"
-                  />
-                  <div className="pet-info">
-                    <h3 className="pet-name">{pet.name}</h3>
-                    <span className="pet-species">{getSpeciesLabel(pet.species)}</span>
-                    <p className="pet-description">{pet.description}</p>
-                  </div>
-                </Link>
+            <div style={{ display: "flex", gap: "8px", flexWrap: "wrap", marginBottom: "24px" }}>
+              {categories.map((cat) => (
+                <Tag
+                  key={cat.id}
+                  color={activeCategory === cat.id ? cat.color : "gray"}
+                  style={{ cursor: "pointer", padding: "6px 16px", fontSize: "0.95rem" }}
+                  onClick={() => handleCategoryChange(cat.id)}
+                >
+                  {cat.label}
+                </Tag>
               ))}
             </div>
 
-            {totalPages > 1 && (
-              <div style={{ display: "flex", justifyContent: "center", gap: "8px", marginTop: "30px" }}>
-                <button
-                  className="btn btn-secondary"
-                  onClick={() => setCurrentPage(p => Math.max(0, p - 1))}
-                  disabled={currentPage === 0}
-                  style={{ opacity: currentPage === 0 ? 0.5 : 1 }}
-                >
-                  上一页
-                </button>
-                <span style={{ display: "flex", alignItems: "center", padding: "0 16px" }}>
-                  第 {currentPage + 1} / {totalPages} 页 (共 {total} 条)
-                </span>
-                <button
-                  className="btn btn-secondary"
-                  onClick={() => setCurrentPage(p => p + 1)}
-                  disabled={currentPage >= totalPages - 1}
-                  style={{ opacity: currentPage >= totalPages - 1 ? 0.5 : 1 }}
-                >
-                  下一页
-                </button>
-              </div>
+            {pets.length === 0 ? (
+              <Empty description="暂无数据" style={{ padding: "60px 0" }} />
+            ) : (
+              <>
+                <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "24px" }}>
+                  {pets.map((pet) => (
+                    <Link href={`/pet/${pet.id}`} key={pet.id} style={{ textDecoration: "none" }}>
+                      <Card
+                        hoverable
+                        className="pet-card"
+                        cover={
+                          <div style={{ height: 200, overflow: "hidden", position: "relative" }}>
+                            <img
+                              alt={pet.name}
+                              src={pet.image_url || "https://picsum.photos/400/300?random=" + pet.id}
+                              style={{ width: "100%", height: "100%", objectFit: "cover" }}
+                            />
+                            {pet.stock <= 0 && (
+                              <div style={{
+                                position: "absolute",
+                                top: 0,
+                                left: 0,
+                                right: 0,
+                                bottom: 0,
+                                background: "rgba(0,0,0,0.5)",
+                                display: "flex",
+                                alignItems: "center",
+                                justifyContent: "center"
+                              }}>
+                                <Tag color="red" size="large">已售罄</Tag>
+                              </div>
+                            )}
+                          </div>
+                        }
+                      >
+                        <Space direction="vertical" size="small" style={{ width: "100%" }}>
+                          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                            <span style={{ fontSize: "1.1rem", fontWeight: 600 }}>{pet.name}</span>
+                            <Tag>{getSpeciesLabel(pet.species)}</Tag>
+                          </div>
+                          
+                          {pet.category === "pet" && (
+                            <span style={{ color: "#666", fontSize: "0.9rem" }}>
+                              年龄: {pet.age} 岁
+                            </span>
+                          )}
+                          
+                          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                            <span className="price">¥{pet.price.toFixed(2)}</span>
+                            <Space>
+                              <Button
+                                type="primary"
+                                size="small"
+                                onClick={(e) => {
+                                  e.preventDefault();
+                                  e.stopPropagation();
+                                  fetch(`http://10.224.205.37:8000/api/cart`, {
+                                    method: "POST",
+                                    headers: { "Content-Type": "application/json" },
+                                    body: JSON.stringify({ pet_id: pet.id, quantity: 1 })
+                                  }).then(() => Message.success("已添加到购物车"));
+                                }}
+                                disabled={pet.stock <= 0}
+                              >
+                                加入购物车
+                              </Button>
+                              <Button
+                                type="text"
+                                status="danger"
+                                size="small"
+                                onClick={(e) => deletePet(pet.id, e as unknown as React.MouseEvent)}
+                              >
+                                删除
+                              </Button>
+                            </Space>
+                          </div>
+                        </Space>
+                      </Card>
+                    </Link>
+                  ))}
+                </div>
+
+                {totalPages > 1 && (
+                  <div style={{ display: "flex", justifyContent: "center", marginTop: "30px" }}>
+                    <Space>
+                      <Button
+                        disabled={currentPage === 1}
+                        onClick={() => setCurrentPage(p => p - 1)}
+                      >
+                        上一页
+                      </Button>
+                      <span style={{ padding: "0 16px", lineHeight: "32px" }}>
+                        第 {currentPage} / {totalPages} 页，共 {total} 条
+                      </span>
+                      <Button
+                        disabled={currentPage === totalPages}
+                        onClick={() => setCurrentPage(p => p + 1)}
+                      >
+                        下一页
+                      </Button>
+                    </Space>
+                  </div>
+                )}
+              </>
             )}
-          </>
-        )}
-      </main>
-    </div>
+          </Card>
+        </main>
+      </div>
     </ProtectedRoute>
   );
 }

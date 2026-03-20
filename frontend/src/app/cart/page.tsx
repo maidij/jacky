@@ -2,8 +2,26 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
 import ProtectedRoute from "@/components/ProtectedRoute";
+import {
+  Card,
+  Button,
+  InputNumber,
+  Empty,
+  Modal,
+  Form,
+  Input,
+  Message,
+  Space,
+  Divider,
+  Badge,
+} from "@arco-design/web-react";
+import {
+  IconDelete,
+  IconCheck,
+} from "@arco-design/web-react/icon";
 
 interface CartItem {
   id: number;
@@ -31,14 +49,11 @@ const PawBackground = () => {
 };
 
 export default function Cart() {
+  const router = useRouter();
   const [cartItems, setCartItems] = useState<CartItem[]>([]);
   const [loading, setLoading] = useState(true);
-  const [showCheckout, setShowCheckout] = useState(false);
-  const [checkoutForm, setCheckoutForm] = useState({
-    receiver_name: "",
-    phone: "",
-    address: "",
-  });
+  const [visible, setVisible] = useState(false);
+  const [confirmLoading, setConfirmLoading] = useState(false);
   const { user, logout } = useAuth();
 
   useEffect(() => {
@@ -60,47 +75,53 @@ export default function Cart() {
   const removeFromCart = async (itemId: number) => {
     try {
       await fetch(`http://10.224.205.37:8000/api/cart/${itemId}`, { method: "DELETE" });
+      Message.success("已移除");
       fetchCart();
     } catch (error) {
       console.error("Error removing from cart:", error);
     }
   };
 
-  const totalAmount = cartItems.reduce((sum, item) => sum + item.pet.price * item.quantity, 0);
+  const updateQuantity = async (itemId: number, quantity: number) => {
+    if (quantity < 1) return;
+    try {
+      await fetch(`http://10.224.205.37:8000/api/cart/${itemId}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ quantity })
+      });
+      fetchCart();
+    } catch (error) {
+      console.error("Error updating quantity:", error);
+    }
+  };
 
-  const handleCheckout = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const totalAmount = cartItems.reduce((sum, item) => sum + item.pet.price * item.quantity, 0);
+  const totalQuantity = cartItems.reduce((sum, item) => sum + item.quantity, 0);
+
+  const handleCheckout = async (values: any) => {
+    setConfirmLoading(true);
     try {
       const res = await fetch(`http://10.224.205.37:8000/api/orders?user_id=1`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(checkoutForm),
+        body: JSON.stringify(values),
       });
       if (res.ok) {
-        alert("订单创建成功！");
-        setShowCheckout(false);
+        Message.success("订单创建成功！");
+        setVisible(false);
         fetchCart();
+        router.push("/orders");
+      } else {
+        const data = await res.json();
+        Message.error(data.detail || "创建失败");
       }
     } catch (error) {
-      console.error("Error creating order:", error);
+      Message.error("创建失败，请重试");
+    } finally {
+      setConfirmLoading(false);
     }
   };
-
-  if (loading) {
-    return (
-      <ProtectedRoute>
-        <div className="container">
-          <PawBackground />
-          <header className="header">
-            <div className="container"><h1>🛒 购物车</h1></div>
-          </header>
-          <div className="loading-container">
-            <div className="loading-pets"><span>🛒</span></div>
-          </div>
-        </div>
-      </ProtectedRoute>
-    );
-  }
 
   return (
     <ProtectedRoute>
@@ -108,12 +129,21 @@ export default function Cart() {
         <PawBackground />
         <header className="header">
           <div className="container" style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-            <h1>🛒 购物车</h1>
-            <div style={{ display: "flex", alignItems: "center", gap: "16px" }}>
-              <Link href="/orders" style={{ color: "white", marginRight: "16px" }}>📋 我的订单</Link>
-              <span style={{ fontSize: "0.9rem" }}>欢迎, {user?.username}</span>
-              <button onClick={logout} className="btn btn-secondary" style={{ padding: "8px 16px" }}>退出</button>
-            </div>
+            <h1 style={{ margin: 0, display: "flex", alignItems: "center", gap: "12px" }}>
+              🛒 购物车
+              <Badge count={totalQuantity} style={{ backgroundColor: "#F53F3F" }} />
+            </h1>
+            <Space>
+              <Link href="/orders">
+                <Button type="text" icon={<IconCheck />} style={{ color: "white" }}>
+                  我的订单
+                </Button>
+              </Link>
+              <span style={{ color: "rgba(255,255,255,0.8)" }}>欢迎, {user?.username}</span>
+              <Button type="secondary" size="small" onClick={logout}>
+                退出
+              </Button>
+            </Space>
           </div>
         </header>
 
@@ -121,136 +151,119 @@ export default function Cart() {
           <Link href="/" className="back-link">← 返回首页</Link>
 
           {cartItems.length === 0 ? (
-            <div className="empty-state">
-              <h2>购物车是空的</h2>
-              <p>快去添加一些商品吧！</p>
-              <Link href="/" className="btn btn-primary" style={{ marginTop: "20px" }}>
-                去购物
-              </Link>
-            </div>
+            <Card>
+              <Empty description="购物车是空的" />
+              <div style={{ textAlign: "center", marginTop: "16px" }}>
+                <Link href="/">
+                  <Button type="primary">去购物</Button>
+                </Link>
+              </div>
+            </Card>
           ) : (
-            <>
-              <div style={{ background: "white", borderRadius: "12px", overflow: "hidden", boxShadow: "0 2px 10px rgba(0,0,0,0.1)" }}>
+            <div style={{ display: "grid", gridTemplateColumns: "2fr 1fr", gap: "24px" }}>
+              <Card title={`商品列表 (${cartItems.length})`}>
                 {cartItems.map((item) => (
-                  <div key={item.id} style={{ display: "flex", alignItems: "center", padding: "20px", borderBottom: "1px solid #eee" }}>
-                    <img
-                      src={item.pet.image_url || "https://via.placeholder.com/100x100?text=Pet"}
-                      alt={item.pet.name}
-                      style={{ width: "100px", height: "100px", objectFit: "cover", borderRadius: "8px" }}
-                    />
-                    <div style={{ flex: 1, marginLeft: "20px" }}>
-                      <h3 style={{ marginBottom: "8px" }}>{item.pet.name}</h3>
-                      <p style={{ color: "#666", marginBottom: "8px" }}>分类: {item.pet.category}</p>
-                      <p style={{ color: "#667eea", fontSize: "1.2rem", fontWeight: "bold" }}>¥{item.pet.price}</p>
+                  <div key={item.id} style={{ padding: "16px 0" }}>
+                    <div style={{ display: "flex", gap: "16px", alignItems: "center" }}>
+                      <img
+                        src={item.pet.image_url || `https://picsum.photos/100/100?random=${item.pet_id}`}
+                        alt={item.pet.name}
+                        style={{ width: "100px", height: "100px", borderRadius: "8px", objectFit: "cover" }}
+                      />
+                      <div style={{ flex: 1 }}>
+                        <div style={{ fontSize: "1.1rem", fontWeight: 500, marginBottom: "8px" }}>
+                          {item.pet.name}
+                        </div>
+                        <div style={{ color: "#666", fontSize: "0.9rem" }}>
+                          分类: {item.pet.category}
+                        </div>
+                      </div>
+                      <div style={{ fontSize: "1.2rem", color: "#F53F3F", fontWeight: 600, minWidth: "80px", textAlign: "right" }}>
+                        ¥{item.pet.price.toFixed(2)}
+                      </div>
+                      <InputNumber
+                        min={1}
+                        max={99}
+                        value={item.quantity}
+                        onChange={(value) => updateQuantity(item.id, value || 1)}
+                        size="small"
+                        style={{ width: "80px" }}
+                      />
+                      <Space>
+                        <div style={{ fontSize: "1.1rem", fontWeight: 600, minWidth: "80px", textAlign: "right" }}>
+                          ¥{(item.pet.price * item.quantity).toFixed(2)}
+                        </div>
+                        <Button
+                          type="text"
+                          status="danger"
+                          icon={<IconDelete />}
+                          onClick={() => removeFromCart(item.id)}
+                        />
+                      </Space>
                     </div>
-                    <div style={{ textAlign: "center", marginRight: "20px" }}>
-                      <p style={{ color: "#666", marginBottom: "8px" }}>数量</p>
-                      <p style={{ fontSize: "1.2rem" }}>{item.quantity}</p>
-                    </div>
-                    <button
-                      onClick={() => removeFromCart(item.id)}
-                      style={{
-                        background: "#ff6b6b",
-                        color: "white",
-                        border: "none",
-                        borderRadius: "8px",
-                        padding: "10px 20px",
-                        cursor: "pointer",
-                      }}
-                    >
-                      删除
-                    </button>
+                    <Divider />
                   </div>
                 ))}
-              </div>
+              </Card>
 
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: "24px", background: "white", padding: "20px", borderRadius: "12px", boxShadow: "0 2px 10px rgba(0,0,0,0.1)" }}>
-                <div>
-                  <p style={{ color: "#666" }}>共 {cartItems.length} 件商品</p>
-                  <p style={{ fontSize: "1.5rem", fontWeight: "bold", color: "#667eea" }}>
-                    总计: ¥{totalAmount.toFixed(2)}
-                  </p>
-                </div>
-                <button
-                  onClick={() => setShowCheckout(true)}
-                  className="btn btn-primary"
-                  style={{ padding: "16px 40px", fontSize: "1.1rem" }}
-                >
-                  结算
-                </button>
-              </div>
-            </>
-          )}
-
-          {showCheckout && (
-            <div style={{
-              position: "fixed",
-              top: 0,
-              left: 0,
-              right: 0,
-              bottom: 0,
-              background: "rgba(0,0,0,0.5)",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              zIndex: 1000,
-            }}>
-              <div style={{ background: "white", padding: "30px", borderRadius: "16px", width: "100%", maxWidth: "500px" }}>
-                <h2 style={{ marginBottom: "20px" }}>确认订单</h2>
-                <form onSubmit={handleCheckout}>
-                  <div className="form-group">
-                    <label>收货人</label>
-                    <input
-                      type="text"
-                      value={checkoutForm.receiver_name}
-                      onChange={(e) => setCheckoutForm({ ...checkoutForm, receiver_name: e.target.value })}
-                      required
-                      placeholder="请输入收货人姓名"
-                    />
+              <Card title="订单摘要">
+                <Space direction="vertical" style={{ width: "100%" }} size="large">
+                  <div style={{ display: "flex", justifyContent: "space-between" }}>
+                    <span>商品数量</span>
+                    <span style={{ fontWeight: 600 }}>{totalQuantity} 件</span>
                   </div>
-                  <div className="form-group">
-                    <label>联系电话</label>
-                    <input
-                      type="tel"
-                      value={checkoutForm.phone}
-                      onChange={(e) => setCheckoutForm({ ...checkoutForm, phone: e.target.value })}
-                      required
-                      placeholder="请输入联系电话"
-                    />
+                  <div style={{ display: "flex", justifyContent: "space-between" }}>
+                    <span>商品金额</span>
+                    <span style={{ fontWeight: 600 }}>¥{totalAmount.toFixed(2)}</span>
                   </div>
-                  <div className="form-group">
-                    <label>收货地址</label>
-                    <textarea
-                      value={checkoutForm.address}
-                      onChange={(e) => setCheckoutForm({ ...checkoutForm, address: e.target.value })}
-                      required
-                      placeholder="请输入收货地址"
-                      rows={3}
-                    />
+                  <Divider style={{ margin: "12px 0" }} />
+                  <div style={{ display: "flex", justifyContent: "space-between" }}>
+                    <span style={{ fontSize: "1.2rem" }}>应付总额</span>
+                    <span style={{ fontSize: "1.5rem", fontWeight: 700, color: "#F53F3F" }}>
+                      ¥{totalAmount.toFixed(2)}
+                    </span>
                   </div>
-                  <div style={{ marginBottom: "20px", padding: "15px", background: "#f5f5f5", borderRadius: "8px" }}>
-                    <p style={{ display: "flex", justifyContent: "space-between", marginBottom: "8px" }}>
-                      <span>商品数量:</span>
-                      <span>{cartItems.reduce((sum, item) => sum + item.quantity, 0)} 件</span>
-                    </p>
-                    <p style={{ display: "flex", justifyContent: "space-between", fontSize: "1.2rem", fontWeight: "bold" }}>
-                      <span>总计:</span>
-                      <span style={{ color: "#667eea" }}>¥{totalAmount.toFixed(2)}</span>
-                    </p>
-                  </div>
-                  <div style={{ display: "flex", gap: "12px" }}>
-                    <button type="submit" className="btn btn-primary" style={{ flex: 1 }}>
-                      确认下单
-                    </button>
-                    <button type="button" onClick={() => setShowCheckout(false)} className="btn btn-secondary" style={{ flex: 1 }}>
-                      取消
-                    </button>
-                  </div>
-                </form>
-              </div>
+                  <Button
+                    type="primary"
+                    long
+                    size="large"
+                    onClick={() => setVisible(true)}
+                    style={{ marginTop: "16px" }}
+                  >
+                    结算 ({totalQuantity})
+                  </Button>
+                </Space>
+              </Card>
             </div>
           )}
         </main>
+
+        <Modal
+          title="确认订单"
+          visible={visible}
+          onCancel={() => setVisible(false)}
+          confirmLoading={confirmLoading}
+          onOk={() => {
+            const form = document.getElementById("checkout-form") as HTMLFormElement;
+            form?.requestSubmit();
+          }}
+        >
+          <Form
+            id="checkout-form"
+            layout="vertical"
+            onSubmit={handleCheckout}
+          >
+            <Form.Item label="收货人" field="receiver_name" rules={[{ required: true, message: "请输入收货人" }]}>
+              <Input placeholder="请输入收货人姓名" />
+            </Form.Item>
+            <Form.Item label="联系电话" field="phone" rules={[{ required: true, message: "请输入联系电话" }]}>
+              <Input placeholder="请输入联系电话" />
+            </Form.Item>
+            <Form.Item label="收货地址" field="address" rules={[{ required: true, message: "请输入收货地址" }]}>
+              <Input.TextArea placeholder="请输入详细收货地址" rows={3} />
+            </Form.Item>
+          </Form>
+        </Modal>
       </div>
     </ProtectedRoute>
   );

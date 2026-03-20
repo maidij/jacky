@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import { Message } from "@arco-design/web-react";
 
 interface Pet {
   id: number;
@@ -45,11 +46,43 @@ export default function PetDetail({ params }: { params: { id: string } }) {
   const [reviewStats, setReviewStats] = useState({ average: 0, count: 0 });
   const [showReviewForm, setShowReviewForm] = useState(false);
   const [newReview, setNewReview] = useState({ rating: 5, comment: "" });
+  const [isFavorited, setIsFavorited] = useState(false);
 
   useEffect(() => {
     fetchPet();
     fetchReviews();
+    checkFavorite();
   }, [params.id]);
+
+  const checkFavorite = async () => {
+    try {
+      const res = await fetch(`http://10.224.205.37:8000/api/favorites/check/${params.id}`);
+      if (res.ok) {
+        const data = await res.json();
+        setIsFavorited(data.is_favorited);
+      }
+    } catch (error) {
+      console.error("Error checking favorite:", error);
+    }
+  };
+
+  const toggleFavorite = async () => {
+    try {
+      if (isFavorited) {
+        await fetch(`http://10.224.205.37:8000/api/favorites/${params.id}`, { method: "DELETE" });
+        setIsFavorited(false);
+      } else {
+        await fetch("http://10.224.205.37:8000/api/favorites", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ pet_id: parseInt(params.id) })
+        });
+        setIsFavorited(true);
+      }
+    } catch (error) {
+      console.error("Error toggling favorite:", error);
+    }
+  };
 
   const fetchPet = async () => {
     try {
@@ -97,7 +130,7 @@ export default function PetDetail({ params }: { params: { id: string } }) {
       setShowReviewForm(false);
       setNewReview({ rating: 5, comment: "" });
       fetchReviews();
-      alert("评价成功！");
+      Message.success("评价成功！");
     } catch (error) {
       console.error("Error submitting review:", error);
     }
@@ -136,6 +169,7 @@ export default function PetDetail({ params }: { params: { id: string } }) {
   };
 
   const addToCart = async () => {
+    if (!pet) return;
     try {
       const res = await fetch(`http://10.224.205.37:8000/api/cart?user_id=1`, {
         method: "POST",
@@ -143,7 +177,7 @@ export default function PetDetail({ params }: { params: { id: string } }) {
         body: JSON.stringify({ pet_id: pet.id, quantity: 1 }),
       });
       if (res.ok) {
-        alert("已添加到购物车！");
+        Message.success("已添加到购物车！");
       }
     } catch (error) {
       console.error("Error adding to cart:", error);
@@ -221,9 +255,21 @@ export default function PetDetail({ params }: { params: { id: string } }) {
               <button onClick={addToCart} className="btn btn-primary" style={{ background: "#4CAF50" }}>
                 🛒 加入购物车
               </button>
+              <button 
+                onClick={toggleFavorite}
+                className="btn btn-primary"
+                style={{ background: isFavorited ? "#f44336" : "#9E9E9E" }}
+              >
+                {isFavorited ? "❤️ 已收藏" : "🤍 收藏"}
+              </button>
               {pet.category === "pet" && (
                 <Link href={`/health/${pet.id}`} className="btn btn-primary" style={{ background: "#2196F3" }}>
                   📋 健康档案
+                </Link>
+              )}
+              {pet.category === "pet" && (
+                <Link href={`/appointments?pet_id=${pet.id}`} className="btn btn-primary" style={{ background: "#FF9800" }}>
+                  📅 预约服务
                 </Link>
               )}
               <Link href={`/edit/${pet.id}`} className="btn btn-primary">

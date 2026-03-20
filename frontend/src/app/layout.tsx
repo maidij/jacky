@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { AuthProvider } from "@/context/AuthContext";
+import ArcoProvider from "@/components/providers/ArcoProvider";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -16,7 +17,9 @@ export default function RootLayout({
     <html lang="zh-CN">
       <body>
         <AuthProvider>
-          {children}
+          <ArcoProvider>
+            {children}
+          </ArcoProvider>
         </AuthProvider>
       </body>
     </html>

@@ -4,41 +4,39 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useAuth } from "@/context/AuthContext";
+import { Card, Form, Input, Button, Message, Space } from "@arco-design/web-react";
+import { IconUser, IconLock } from "@arco-design/web-react/icon";
 
 export default function Register() {
   const router = useRouter();
   const { register, login } = useAuth();
-  const [username, setUsername] = useState("");
-  const [password, setPassword] = useState("");
-  const [confirmPassword, setConfirmPassword] = useState("");
-  const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setError("");
-
-    if (password !== confirmPassword) {
-      setError("两次输入的密码不一致");
+  const handleSubmit = async (values: { username: string; password: string; confirmPassword: string }) => {
+    if (values.password !== values.confirmPassword) {
+      Message.error("两次输入的密码不一致");
       return;
     }
-
-    if (password.length < 6) {
-      setError("密码长度至少6位");
+    if (values.password.length < 6) {
+      Message.error("密码长度至少6位");
       return;
     }
 
     setLoading(true);
-
-    const success = await register(username, password);
-    
-    if (success) {
-      await login(username, password);
-      router.push("/");
-    } else {
-      setError("用户名已存在");
+    try {
+      const success = await register(values.username, values.password);
+      if (success) {
+        await login(values.username, values.password);
+        Message.success("注册成功！");
+        router.push("/");
+      } else {
+        Message.error("用户名已存在");
+      }
+    } catch {
+      Message.error("注册失败，请重试");
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   };
 
   return (
@@ -47,136 +45,87 @@ export default function Register() {
       display: "flex",
       alignItems: "center",
       justifyContent: "center",
-      background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
+      background: "linear-gradient(135deg, #00B42A 0%, #23C343 100%)",
+      padding: "20px",
     }}>
-      <div style={{
-        background: "white",
-        padding: "40px",
-        borderRadius: "16px",
-        boxShadow: "0 10px 40px rgba(0,0,0,0.2)",
-        width: "100%",
-        maxWidth: "400px",
-      }}>
-        <h1 style={{
-          textAlign: "center",
-          marginBottom: "30px",
-          fontSize: "2rem",
-          color: "#333",
-        }}>🐾 注册</h1>
-
-        {error && (
+      <Card
+        style={{ width: 420 }}
+        cover={
           <div style={{
-            background: "#fee",
-            color: "#c33",
-            padding: "12px",
-            borderRadius: "8px",
-            marginBottom: "20px",
+            background: "linear-gradient(135deg, #00B42A 0%, #23C343 100%)",
+            padding: "40px 20px",
             textAlign: "center",
           }}>
-            {error}
+            <div style={{ fontSize: "4rem", marginBottom: "10px" }}>🐾</div>
+            <h2 style={{ color: "white", margin: 0 }}>宠物管理系统</h2>
+            <p style={{ color: "rgba(255,255,255,0.8)", marginTop: "8px" }}>创建新账号</p>
           </div>
-        )}
-
-        <form onSubmit={handleSubmit}>
-          <div style={{ marginBottom: "20px" }}>
-            <label style={{
-              display: "block",
-              marginBottom: "8px",
-              fontWeight: "500",
-              color: "#333",
-            }}>用户名</label>
-            <input
-              type="text"
-              value={username}
-              onChange={(e) => setUsername(e.target.value)}
-              required
-              style={{
-                width: "100%",
-                padding: "12px",
-                border: "2px solid #e0e0e0",
-                borderRadius: "8px",
-                fontSize: "1rem",
-              }}
-              placeholder="请输入用户名"
-            />
-          </div>
-
-          <div style={{ marginBottom: "20px" }}>
-            <label style={{
-              display: "block",
-              marginBottom: "8px",
-              fontWeight: "500",
-              color: "#333",
-            }}>密码</label>
-            <input
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              required
-              style={{
-                width: "100%",
-                padding: "12px",
-                border: "2px solid #e0e0e0",
-                borderRadius: "8px",
-                fontSize: "1rem",
-              }}
-              placeholder="请输入密码（至少6位）"
-            />
-          </div>
-
-          <div style={{ marginBottom: "24px" }}>
-            <label style={{
-              display: "block",
-              marginBottom: "8px",
-              fontWeight: "500",
-              color: "#333",
-            }}>确认密码</label>
-            <input
-              type="password"
-              value={confirmPassword}
-              onChange={(e) => setConfirmPassword(e.target.value)}
-              required
-              style={{
-                width: "100%",
-                padding: "12px",
-                border: "2px solid #e0e0e0",
-                borderRadius: "8px",
-                fontSize: "1rem",
-              }}
-              placeholder="请再次输入密码"
-            />
-          </div>
-
-          <button
-            type="submit"
-            disabled={loading}
-            style={{
-              width: "100%",
-              padding: "14px",
-              background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
-              color: "white",
-              border: "none",
-              borderRadius: "8px",
-              fontSize: "1rem",
-              cursor: loading ? "not-allowed" : "pointer",
-              opacity: loading ? 0.7 : 1,
-            }}
+        }
+      >
+        <Form
+          onSubmit={handleSubmit}
+          layout="vertical"
+          requiredSymbol={false}
+        >
+          <Form.Item
+            label="用户名"
+            rules={[{ required: true, message: "请输入用户名" }]}
           >
-            {loading ? "注册中..." : "注册"}
-          </button>
-        </form>
-
-        <p style={{
-          textAlign: "center",
-          marginTop: "20px",
-          color: "#666",
-        }}>
-          已有账号？{" "}
-          <Link href="/login" style={{ color: "#667eea" }}>
-            立即登录
+            <Input
+              prefix={<IconUser />}
+              placeholder="请输入用户名"
+              size="large"
+            />
+          </Form.Item>
+          
+          <Form.Item
+            label="密码"
+            rules={[
+              { required: true, message: "请输入密码" },
+              { minLength: 6, message: "密码长度至少6位" }
+            ]}
+          >
+            <Input.Password
+              prefix={<IconLock />}
+              placeholder="请输入密码（至少6位）"
+              size="large"
+            />
+          </Form.Item>
+          
+          <Form.Item
+            label="确认密码"
+            rules={[{ required: true, message: "请确认密码" }]}
+          >
+            <Input.Password
+              prefix={<IconLock />}
+              placeholder="请再次输入密码"
+              size="large"
+            />
+          </Form.Item>
+          
+          <Form.Item style={{ marginTop: 24 }}>
+            <Button
+              type="primary"
+              htmlType="submit"
+              long
+              loading={loading}
+              size="large"
+              style={{ background: "#00B42A" }}
+            >
+              {loading ? "注册中..." : "注册"}
+            </Button>
+          </Form.Item>
+        </Form>
+        
+        <Space direction="vertical" align="center" style={{ width: "100%", marginTop: 16 }}>
+          <span style={{ color: "#666" }}>已有账号？</span>
+          <Link href="/login" style={{ textDecoration: "none" }}>
+            <Button type="text" style={{ color: "#00B42A" }}>
+              ← 返回登录
+            </Button>
           </Link>
-        </p>
-      </div>
+        </Space>
+      </Card>
     </div>
   );
 }
